@@ -5311,6 +5311,63 @@ static boolean ai_conversation_line_begin(
 		conversation->line_spoken = FALSE;
 		result = TRUE;
 	}
+	/* port: a line the conversation gives no participant is spoken all the
+	same, as the retail game speaks it: by the conversation's one participant,
+	named in the level, while that unit lives, else unspatialized, as a
+	participant with no actor speaks. a50's prison_kickin_ass is such a line
+	(the corporal's, jailed_marine_2's, as the cell's Covenant fall: its one
+	participant has no dialogue variant, so is never found), and it was
+	skipped: the conversation ended without a word. */
+	else if (participant_index == NONE)
+	{
+		long speaking_unit_index = NONE;
+		short variant_index;
+
+		if (ai_conversation_participant_count(definition) == 1)
+		{
+			struct scenario_conversation_participant_view *only_participant =
+				TAG_BLOCK_GET_ELEMENT(
+					&definition->participants,
+					0,
+					struct scenario_conversation_participant_view);
+
+			if (only_participant->preexisting_object_name_index != NONE)
+			{
+				long object_index = object_index_from_name_index(
+					only_participant->preexisting_object_name_index);
+				struct unit_datum *unit = object_index != NONE ?
+					unit_try_and_get(object_index) :
+					NULL;
+
+				if (unit && !TEST_FLAG(unit->object.damage_flags, _object_dead_bit))
+				{
+					speaking_unit_index = object_index;
+				}
+			}
+		}
+		/* (the line's first dialogue) */
+		for (variant_index = 0;
+			variant_index < MAXIMUM_DIALOGUE_VARIANTS_PER_CONVERSATION_PARTICIPANT &&
+				line->dialogue[variant_index].index == NONE;
+			variant_index = (short)(variant_index + 1))
+		{
+		}
+		if (variant_index < MAXIMUM_DIALOGUE_VARIANTS_PER_CONVERSATION_PARTICIPANT)
+		{
+			conversation->line_participant_index = NONE;
+			conversation->line_actor_index = NONE;
+			conversation->line_unit_index = speaking_unit_index;
+			conversation->line_address_unit_index = NONE;
+			conversation->line_unspatialized = speaking_unit_index == NONE;
+			conversation->line_sound_index = line->dialogue[variant_index].index;
+			conversation->line_delay_timer = (short)(long)(line->delay_time * 30.0f);
+			conversation->line_flags = line->flags;
+			conversation->line_advance = FALSE;
+			conversation->line_finished = FALSE;
+			conversation->line_spoken = FALSE;
+			result = TRUE;
+		}
+	}
 
 	return result;
 }
