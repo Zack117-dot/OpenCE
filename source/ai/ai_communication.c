@@ -3489,10 +3489,20 @@ static boolean ai_conversation_find_participant(
 				continue;
 			}
 
+			/* port: but not an optional participant the conversation names,
+			whose unit is within range of a player (above): there is no one
+			nearer the player to choose, and passed over, it was left out of
+			the conversation, which began without it and skipped its lines.
+			Keyes in a50's brig answers the corporal (prison_clear) only so,
+			from his cell, the player a few metres off after the fight. One
+			the conversation cannot begin without still waits for the player
+			to come near (participant_not_ready, ai_conversation_begin) */
 			if (first_participant &&
 				!player_selection &&
 				player_rating < 2.0f &&
-				conversation_definition->run_to_player_dist == 0.0f)
+				conversation_definition->run_to_player_dist == 0.0f &&
+				!(use_specific_object &&
+					TEST_FLAG(participant->flags, _ai_conversation_participant_optional_bit)))
 			{
 				rejection_counts[5]++;
 				better_player_rating_found = TRUE;
